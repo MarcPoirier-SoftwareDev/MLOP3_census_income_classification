@@ -87,3 +87,7 @@ def model_metrics(model: Mlp, x_test: np.array = None, y_test: np.array = None) 
     precision, recall, f1 = compute_model_metrics(y_test, y_pred)
     evaluation = {'precision': precision, 'recall': recall, 'f1': f1}
     return evaluation
+
+
+if __name__ == '__main__':
+    train_and_save_model()

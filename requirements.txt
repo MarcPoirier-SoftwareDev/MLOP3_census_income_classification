@@ -1,6 +1,6 @@
 #python==3.8
-numpy==2.1.2
-pandas==2.2.3
+numpy==1.26.4
+pandas
 scikit-learn==1.5.2
 pytest
 requests==2.32.4

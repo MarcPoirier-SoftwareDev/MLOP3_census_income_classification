@@ -112,6 +112,7 @@ class Mlp(nn.Module):
                 n_batch = len(train_loader)  # number of batches
                 # Every data instance is an input + label pair
                 inputs, labels = data
+                labels = labels.to(torch.int64)  # Convert labels to torch.int64 (LongTensor)
 
                 # Zero your gradients for every batch!
                 self.optimizer.zero_grad()

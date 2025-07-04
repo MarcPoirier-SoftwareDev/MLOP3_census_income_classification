@@ -119,7 +119,7 @@ def objective(trial: optuna.Trial, x_train: np.array, y_train: np.array, x_val: 
         'n_layers': trial.suggest_categorical('n_layers', [1, 2, 3, 4, 5]),
         'dropout_rate': trial.suggest_categorical('dropout_rate', [0.3, 0.4, 0.5, 0.6, 0.7])
     }
-    model = training_session(x_train, y_train, **params, epochs=150, n_classes=2, hyper_tuning=True)
+    model = training_session(x_train, y_train, use_saved_model=False, **params, epochs=150, n_classes=2, hyper_tuning=True)
     preds = model.predict(x_val)
     f1 = fbeta_score(y_val, preds, beta=1, zero_division=1)
     return f1

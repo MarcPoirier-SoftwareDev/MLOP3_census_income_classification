@@ -72,7 +72,7 @@ def process_data(
     X_continuous = X.drop(*[categorical_features], axis=1).values
 
     if training is True:
-        encoder = OneHotEncoder(sparse=False, handle_unknown="ignore")
+        encoder = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
         lb = LabelBinarizer()
         X_categorical = encoder.fit_transform(X_categorical)
         y = lb.fit_transform(y.values).ravel()
@@ -93,25 +93,36 @@ def process_data(
     return X, y, encoder, lb, scaler
 
 
-def get_path_root() -> pathlib.PosixPath:
+def get_path_root() -> Path:
     """
-    :return:
-    absolut path to project directory "census_income_classification" or "app" when deployed on Heroku
+    Determine the project root directory.
+
+    First, checks if the PROJECT_ROOT environment variable is set (e.g., for deployed environments like Render).
+    If not, traverses up from the current working directory until a directory containing 'Procfile' is found (e.g., for local use).
+    
+    Returns:
+        Path: Absolute path to the project root directory.
+    
+    Raises:
+        Exception: If the project root cannot be found.
     """
-    logger.debug('get_path_root')
-    current_path = Path(os.path.realpath(__file__)).resolve()
-    path = current_path
-
-    # When deployed as an app in Heroku the project directory is 'app'
-    counter = 0
-    while path.name != 'census_income_classification' and path.name != 'app':
-        path = path.parent
-        counter += 1
-        if counter > 100:
-            raise Exception('Cannot find project path')
-
-    logger.debug(f'project directory path: {path}')
-    return path
+    # Check for environment variable (e.g., set in Render)
+    if 'PROJECT_ROOT' in os.environ:
+        root = Path(os.environ['PROJECT_ROOT'])
+        logger.info(f"Using PROJECT_ROOT from environment: {root}")
+        return root
+    
+    # Fallback to searching for a marker file (Procfile) locally
+    current_path = Path.cwd()
+    for _ in range(10):  # Limit traversal to 10 levels
+        if (current_path / 'Procfile').exists():
+            logger.info(f"Found Procfile at: {current_path}")
+            return current_path
+        if current_path.parent == current_path:  # Reached filesystem root
+            break
+        current_path = current_path.parent
+    
+    raise Exception('Cannot find project path')
 
 
 def get_path_file(file_local_path):
