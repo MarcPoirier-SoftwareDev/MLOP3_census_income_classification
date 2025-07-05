@@ -1,6 +1,5 @@
 """
-Implementation of a feed-forward network (multi-layer perceptron, or mlp).
-
+Implementation of a feed-forward network (multi-layer perceptron, or MLP).
 """
 
 import numpy as np
@@ -12,55 +11,59 @@ from pickle import dump, load
 from .data import get_path_file, get_hyperparameters
 import logging
 
+# Configure logging
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger()
-
+logger = logging.getLogger(__name__)
 
 class Mlp(nn.Module):
     """
-    Class for implementing the neural network
+    Multi-layer perceptron (MLP) neural network implementation in PyTorch.
 
     Parameters
     ----------
-    n_layers: int
-        number of layers
-    hidden_dim: int
-        hidden dimension
-    n_classes: int
-        number of classes
-    input_dim: int
-        dimension of the features
-    batch_size: int
-        Number of examples per batch. Final batches can have fewer examples, depending on the total number of examples
-        in the dataset.
-    epochs: int
+    n_layers : int, default=2
+        Number of hidden layers.
+    hidden_dim : int, default=50
+        Size of each hidden layer.
+    n_classes : int, default=2
+        Number of output classes.
+    input_dim : int, default=108
+        Dimension of the input features.
+    batch_size : int, default=1028
+        Number of examples per batch.
+    epochs : int, default=200
         Number of training iterations over the dataset.
-    learning_rate : float
+    learning_rate : float, default=0.001
         Learning rate for the optimizer.
-    hyper_tuning: bool
-        Indicates if the model is used for hyperparameters tuning. In this case, the model doesn't print the losses
-        during training
-    use_saved_hyper_params: bool
-        Indicates if hyperparameters need to be loaded from yaml file
+    dropout_rate : float, default=0.5
+        Dropout probability for regularization.
+    hyper_tuning : bool, default=False
+        If True, suppresses training logs for hyperparameter tuning.
+    use_saved_hyper_params : bool, default=False
+        If True, loads hyperparameters from a YAML file.
     """
-
-    def __init__(self, n_layers: int = 2,
-                 hidden_dim: int = 50,
-                 n_classes: int = 2,
-                 input_dim: int = 108,
-                 batch_size: int = 1028,
-                 epochs: int = 200,
-                 learning_rate: float = 0.001,
-                 dropout_rate: float = 0.5,
-                 hyper_tuning: bool = False,
-                 use_saved_hyper_params: bool = False
-                 ):
-        logger.info('building MLP')
+    def __init__(
+        self,
+        n_layers: int = 2,
+        hidden_dim: int = 50,
+        n_classes: int = 2,
+        input_dim: int = 108,
+        batch_size: int = 1028,
+        epochs: int = 200,
+        learning_rate: float = 0.001,
+        dropout_rate: float = 0.5,
+        hyper_tuning: bool = False,
+        use_saved_hyper_params: bool = False
+    ):
+        logger.info("Initializing MLP")
         super(Mlp, self).__init__()
-        self.loss_fn = nn.CrossEntropyLoss()  # combines nn.LogSoftmax and nn.NLLLoss
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        
+        # Device setup
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.epochs = epochs
         self.hyper_tuning = hyper_tuning
+        
+        # Load hyperparameters if specified
         if use_saved_hyper_params:
             params = get_hyperparameters()['parameters']
             self.batch_size = params['batch_size']
@@ -72,161 +75,181 @@ class Mlp(nn.Module):
             self.batch_size = batch_size
             self.dropout_rate = dropout_rate
             self.learning_rate = learning_rate
-        self.network = build_mlp(input_size=input_dim,
-                                 output_size=n_classes,
-                                 n_layers=n_layers,
-                                 hidden_size=hidden_dim,
-                                 dropout_rate=dropout_rate)
-        self.optimizer = torch.optim.Adam(self.network.parameters())
-        self.network.to(self.device)
-        # Calibrated preprocessing tools that were used for training an that are necessary for inference
-        self.encoder = None  # sklearn.preprocessing.OneHotEncoder
-        self.lb = None  # sklearn.preprocessing.LabelBinarizer
-        self.scaler = None  # sklearn.preprocessing.StandardScaler
+
+        # Define network and optimizer
+        self.loss_fn = nn.CrossEntropyLoss()  # Expects raw logits
+        self.network = build_mlp(
+            input_size=input_dim,
+            output_size=n_classes,
+            n_layers=n_layers,
+            hidden_size=hidden_dim,
+            dropout_rate=dropout_rate
+        ).to(self.device)
+        self.optimizer = torch.optim.Adam(self.network.parameters(), lr=self.learning_rate)
+
+        # Preprocessing tools (initialized as None, populated via load_model or training)
+        self.encoder = None  # OneHotEncoder
+        self.lb = None  # LabelBinarizer
+        self.scaler = None  # StandardScaler
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Pytorch forward method used to perform a forward pass of inputs through the network
-        :param x: processed features observed (shape [batch size, dim(processed features)])
-        :return:
-            output (torch.Tensor): networks predicted income class for a given observation (shape [batch size])
-        """
-        logits = self.network(x)
-        return logits
+        Forward pass through the network.
 
-    def train_model(self, x_train: np.array, y_train: np.array) -> float:
+        Args
+        ----
+        x : torch.Tensor
+            Input features [batch_size, input_dim].
+
+        Returns
+        -------
+        torch.Tensor
+            Logits [batch_size, n_classes].
         """
-        Train the NN
-        :param x_train: processed training features
-        :param y_train: training labels in {0, 1}
-        :return: average loss in latest batch used for training
+        return self.network(x)
+
+    def train_model(self, x_train: np.ndarray, y_train: np.ndarray) -> float:
         """
-        data_set = CensusDataset(x_train, y_train, self.device)
-        train_loader = DataLoader(data_set, batch_size=self.batch_size, shuffle=True)
-        self.network.train()
-        last_loss = 0
+        Train the MLP on the provided data.
+
+        Args
+        ----
+        x_train : np.ndarray
+            Training features.
+        y_train : np.ndarray
+            Training labels (integers in {0, 1, ..., n_classes-1}).
+
+        Returns
+        -------
+        float
+            Average loss of the last epoch.
+        """
+        dataset = CensusDataset(x_train, y_train, self.device)
+        train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        self.train()  # Set model to training mode
+        last_loss = 0.0
+
         for epoch in range(self.epochs):
-            last_loss = 0
-            running_loss = 0
-            for i, data in enumerate(train_loader):
-                n_batch = len(train_loader)  # number of batches
-                # Every data instance is an input + label pair
-                inputs, labels = data
-                labels = labels.to(torch.int64)  # Convert labels to torch.int64 (LongTensor)
-
-                # Zero your gradients for every batch!
+            running_loss = 0.0
+            for i, (inputs, labels) in enumerate(train_loader):
                 self.optimizer.zero_grad()
-
-                # Make predictions for this batch
                 outputs = self.network(inputs)
-
-                # Compute the loss and its gradients
                 loss = self.loss_fn(outputs, labels)
                 loss.backward()
-
-                # Adjust learning weights
                 self.optimizer.step()
 
-                # Gather data and report
                 running_loss += loss.item()
-                if epoch % 20 == 0 and i % n_batch == n_batch - 1 and not self.hyper_tuning:
-                    last_loss = running_loss / n_batch  # loss per batch
-                    print('epoch {} loss: {}'.format(epoch, last_loss))
-                    running_loss = 0.
+                n_batches = len(train_loader)
+                if (epoch % 20 == 0 and i == n_batches - 1 and not self.hyper_tuning):
+                    last_loss = running_loss / n_batches
+                    logger.info(f"Epoch {epoch}, Loss: {last_loss:.4f}")
+                    running_loss = 0.0
 
         return last_loss
 
-    def predict(self, x: np.array) -> np.array:
+    def predict(self, x: np.ndarray) -> np.ndarray:
         """
-        Use model for inference
-        :param x: processed features values
-        :return:
-        """
-        self.network.eval()
-        x = torch.from_numpy(x).to(self.device).to(torch.float32)
-        logits = self.network(x)
-        y_pred = logits.argmax(dim=1).cpu().numpy().reshape(-1)
-        return y_pred
+        Perform inference on input data.
 
-    def save_model(self, encoder: OneHotEncoder, lb: LabelBinarizer, scaler: StandardScaler):
+        Args
+        ----
+        x : np.ndarray
+            Input features.
+
+        Returns
+        -------
+        np.ndarray
+            Predicted class indices.
         """
-        Save the model and the preprocessing tools used to calibrate the model
-        :param encoder: sklearn OneHotEncoder
-        :param lb: sklearn LabelBinarizer
-        :param scaler: sklearn StandardScaler
-        :return:
+        self.eval()  # Set model to evaluation mode
+        with torch.no_grad():
+            x_tensor = torch.from_numpy(x).to(self.device).float()
+            logits = self.network(x_tensor)
+            return logits.argmax(dim=1).cpu().numpy().reshape(-1)
+
+    def save_model(self, encoder: OneHotEncoder, lb: LabelBinarizer, scaler: StandardScaler) -> None:
+        """
+        Save the model state and preprocessing tools.
+
+        Args
+        ----
+        encoder : OneHotEncoder
+            Fitted one-hot encoder.
+        lb : LabelBinarizer
+            Fitted label binarizer.
+        scaler : StandardScaler
+            Fitted standard scaler.
         """
         model_path = get_path_file('model/mlp.pt')
         torch.save(self.state_dict(), model_path)
-        # save the tools used for pre-processing data
-        dump(encoder, open('model/encoder.pkl', 'wb'))
-        dump(lb, open('model/lb.pkl', 'wb'))
-        dump(scaler, open('model/scaler.pkl', 'wb'))
+        for obj, filename in [(encoder, 'encoder.pkl'), (lb, 'lb.pkl'), (scaler, 'scaler.pkl')]:
+            dump(obj, open(get_path_file(f'model/{filename}'), 'wb'))
 
-    def load_model(self):
+    def load_model(self) -> None:
         """
-        load model and pre-processing tools needed for inference
-        :return:
+        Load the model state and preprocessing tools.
         """
         model_path = get_path_file('model/mlp.pt')
-        self.load_state_dict(torch.load(model_path))
-        # get the paths to the relevant files
-        encoder_path = get_path_file('model/encoder.pkl')
-        lb_path = get_path_file('model/lb.pkl')
-        scaler_path = get_path_file('model/scaler.pkl')
-        self.encoder = load(open(encoder_path, 'rb'))
-        self.lb = load(open(lb_path, 'rb'))
-        self.scaler = load(open(scaler_path, 'rb'))
+        self.load_state_dict(torch.load(model_path, map_location=self.device))
+        for attr, filename in [('encoder', 'encoder.pkl'), ('lb', 'lb.pkl'), ('scaler', 'scaler.pkl')]:
+            path = get_path_file(f'model/{filename}')
+            setattr(self, attr, load(open(path, 'rb')))
 
 
 def build_mlp(
-        input_size: int,
-        output_size: int,
-        n_layers: int,
-        hidden_size: int,
-        dropout_rate) -> nn.Module:
+    input_size: int,
+    output_size: int,
+    n_layers: int,
+    hidden_size: int,
+    dropout_rate: float
+) -> nn.Module:
     """
-    Builds a multi-layer perceptron in Pytorch based on a user's input
-    :param input_size: the dimension of inputs to be given to the network
-    :param output_size: the dimension of the output
-    :param n_layers: t the number of hidden layers of the network
-    :param hidden_size: the size of each hidden layer
-    :param dropout_rate: During training, probability of the elements of the input tensor being set to 0.
-    :return:
-    An instance of (a subclass of) nn.Module representing the network.
-    """
-    # sequence of  affine operations: y = Wx + b followed by RelU activation.
-    layer_list = [nn.Linear(input_size, hidden_size), nn.ReLU()]
+    Construct an MLP network.
 
-    for layer in range(n_layers):
-        layer_list.append(nn.Linear(hidden_size, hidden_size))
-        layer_list.append(nn.Dropout(p=dropout_rate))
-        layer_list.append(nn.ReLU())
-    layer_list.append(nn.Linear(hidden_size, output_size))
-    mlp = nn.Sequential(*layer_list)
-    return mlp
+    Args
+    ----
+    input_size : int
+        Dimension of input features.
+    output_size : int
+        Number of output classes.
+    n_layers : int
+        Number of hidden layers.
+    hidden_size : int
+        Size of each hidden layer.
+    dropout_rate : float
+        Dropout probability.
+
+    Returns
+    -------
+    nn.Module
+        The constructed MLP network.
+    """
+    layers = [nn.Linear(input_size, hidden_size), nn.ReLU()]
+    for _ in range(n_layers):
+        layers.extend([nn.Linear(hidden_size, hidden_size), nn.Dropout(p=dropout_rate), nn.ReLU()])
+    layers.append(nn.Linear(hidden_size, output_size))
+    return nn.Sequential(*layers)
 
 
 class CensusDataset(Dataset):
     """
-    Dataset for loading census data
+    Dataset class for census data.
 
     Parameters
     ----------
-    features: torch.Tensor
-        processed features
-    labels: torch.Tensor
-        labels (in {0, 1})
-    device: str
-        device used ('cuda' or 'cpu')
+    features : np.ndarray
+        Processed features.
+    labels : np.ndarray
+        Labels (integers in {0, 1, ..., n_classes-1}).
+    device : str
+        Device to store tensors ('cuda' or 'cpu').
     """
+    def __init__(self, features: np.ndarray, labels: np.ndarray, device: str):
+        self.features = torch.from_numpy(features).to(device).float()
+        self.labels = torch.from_numpy(labels).to(device).long()  # LongTensor for CrossEntropyLoss
 
-    def __init__(self, features: np.array, labels: np.array, device: str):
-        self.features = torch.from_numpy(features).to(device).to(torch.float32)
-        self.labels = torch.from_numpy(labels).to(device)
-
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.features)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple:
         return self.features[idx], self.labels[idx]
