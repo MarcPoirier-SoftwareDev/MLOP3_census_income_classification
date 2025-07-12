@@ -8,6 +8,8 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger()
 
+
+# example to change to have another prediction
 data = {
     "age": 41,
     "workclass": "State-gov",
@@ -24,7 +26,9 @@ data = {
     "hours-per-week": 40,
     "native-country": "Cuba"
 }
-url = 'https://geof-census-app.herokuapp.com/'
+# url = 'https://geof-census-app.herokuapp.com/'
+url = 'https://mlop3-census-income-classification-3.onrender.com'
+
 # url = "http://127.0.0.1:8000/"
 # when run with uvicorn works fine
 response1 = requests.get(url)

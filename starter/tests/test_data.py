@@ -36,3 +36,8 @@ def test_get_cat_features():
     ]
     cat_features = get_cat_features()
     assert cat_features == exp_cat_features
+
+
+if __name__ == '__main__':
+    test_get_path_root()
+    
