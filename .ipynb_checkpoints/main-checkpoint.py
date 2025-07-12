@@ -18,6 +18,19 @@ logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(mes
 logger = logging.getLogger()
 
 
+if "DYNO" in os.environ and os.path.isdir(".dvc"):
+    # This code is necessary for Heroku to use dvc
+    logger.info("Running DVC")
+    os.system("dvc config core.no_scm true")
+    pull_err = os.system("dvc pull")
+    if pull_err != 0:
+        exit(f"dvc pull failed, error {pull_err}")
+    else:
+        logger.info("DVC Pull worked.")
+    logger.info('removing dvc files')
+    os.system("rm -r .dvc .apt/usr/lib/dvc")
+
+
 class CensusItem(BaseModel):
     age: int
     workclass: str

@@ -11,7 +11,7 @@ logger = logging.getLogger()
 
 # example to change to have another prediction
 data = {
-    "age": 41,
+    "age": 52,
     "workclass": "State-gov",
     "fnlgt": 77516,
     "education": "Bachelors",
@@ -21,12 +21,12 @@ data = {
     "relationship": "Husband",
     "race": "White",
     "sex": "Male",
-    "capital-gain": 2100,
+    "capital-gain": 7000,
     "capital-loss": 0,
     "hours-per-week": 40,
-    "native-country": "Cuba"
+    "native-country": "United-States"
 }
-# url = 'https://geof-census-app.herokuapp.com/'
+
 url = 'https://mlop3-census-income-classification-3.onrender.com'
 
 # url = "http://127.0.0.1:8000/"

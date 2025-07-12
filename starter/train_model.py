@@ -8,8 +8,7 @@ import numpy as np
 from typing import Tuple
 from sklearn.model_selection import train_test_split
 from .ml.data import process_data, get_clean_data, get_cat_features, get_data_slices, get_processed_test_data
-from .ml.model import train_model, compute_model_metrics, inference
-from .ml.nn_model import Mlp
+from .ml.model import train_model, compute_model_metrics, inference, Mlp
 
 
 def train_and_save_model(tuning: bool = True, random_state: int = 42,

@@ -1,8 +1,8 @@
 name: MLP hyper parameters
 parameters:
-  batch_size: 1024
-  dropout_rate: 0.3
+  batch_size: 512
+  dropout_rate: 0.6
   hidden_dim: 10
-  learning_rate: 0.06857033250906237
-  n_layers: 2
+  learning_rate: 0.0008722659179557177
+  n_layers: 3
 random_state: 42
