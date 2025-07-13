@@ -37,9 +37,9 @@ class CensusItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "age": 41,
+                "age": 52,
                 "workclass": "State-gov",
-                "fnlgt": 77516,
+                "fnlgt": 287927,
                 "education": "Bachelors",
                 "education-num": 13,
                 "marital-status": "Divorced",
@@ -47,10 +47,10 @@ class CensusItem(BaseModel):
                 "relationship": "Husband",
                 "race": "White",
                 "sex": "Male",
-                "capital-gain": 2100,
+                "capital-gain": 7000,
                 "capital-loss": 0,
-                "hours-per-week": 40,
-                "native-country": "Cuba"
+                "hours-per-week": 42,
+                "native-country": "United-States"
             }
         }
 
@@ -92,7 +92,7 @@ app = FastAPI()
 @app.get("/")
 async def api_greeting():
     logger.info("starting GET request")
-    return {"greeting": "Welcome! This API predicts income category using Census data."}
+    return {"Greetings": "Welcome to This API predicting income category using Census data."}
 
 
 @app.post("/predict", response_model=Item)

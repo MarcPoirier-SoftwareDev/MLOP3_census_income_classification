@@ -296,7 +296,7 @@ def train_model(x_train: np.array, y_train: np.array, tuning: bool = True, rando
     print('training the model...')
     # Now that we've estimated the optimal value for hyper-parameters, we can train the model
     # on all the training data available.
-    model = training_session(x_train, y_train, n_classes, **params, epochs=1000, hyper_tuning=False,
+    model = training_session(x_train, y_train, n_classes, **params, epochs=500, hyper_tuning=False,
                              use_saved_model=use_saved_model)
     return model
 

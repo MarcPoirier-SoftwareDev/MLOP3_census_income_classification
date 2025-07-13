@@ -18,19 +18,6 @@ logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(mes
 logger = logging.getLogger()
 
 
-if "DYNO" in os.environ and os.path.isdir(".dvc"):
-    # This code is necessary for Heroku to use dvc
-    logger.info("Running DVC")
-    os.system("dvc config core.no_scm true")
-    pull_err = os.system("dvc pull")
-    if pull_err != 0:
-        exit(f"dvc pull failed, error {pull_err}")
-    else:
-        logger.info("DVC Pull worked.")
-    logger.info('removing dvc files')
-    os.system("rm -r .dvc .apt/usr/lib/dvc")
-
-
 class CensusItem(BaseModel):
     age: int
     workclass: str
@@ -50,9 +37,9 @@ class CensusItem(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "age": 41,
+                "age": 52,
                 "workclass": "State-gov",
-                "fnlgt": 77516,
+                "fnlgt": 287927,
                 "education": "Bachelors",
                 "education-num": 13,
                 "marital-status": "Divorced",
@@ -60,10 +47,10 @@ class CensusItem(BaseModel):
                 "relationship": "Husband",
                 "race": "White",
                 "sex": "Male",
-                "capital-gain": 2100,
+                "capital-gain": 7000,
                 "capital-loss": 0,
-                "hours-per-week": 40,
-                "native-country": "Cuba"
+                "hours-per-week": 42,
+                "native-country": "United-States"
             }
         }
 
@@ -105,7 +92,7 @@ app = FastAPI()
 @app.get("/")
 async def api_greeting():
     logger.info("starting GET request")
-    return {"greeting": "Welcome! This API predicts income category using Census data."}
+    return {"Greetings": "Welcome to This API which predicts income category using Census data."}
 
 
 @app.post("/predict", response_model=Item)

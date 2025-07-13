@@ -12,7 +12,11 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelBinarizer, OneHotEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score, recall_score, f1_score
 import logging
+import pickle
+import torch 
+
 
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger()
@@ -244,5 +248,19 @@ def get_data_slices(selected_feature: str, encoder: OneHotEncoder, lb: LabelBina
 
 
 if __name__ == '__main__':
-    a = get_path_file('data')
-    get_data_slices('education')
+    
+    # Get the root and model directory
+    root = get_path_root()
+    model_dir = root / 'model'
+    
+    # Load the required preprocessor objects
+    with open(model_dir / 'encoder.pkl', 'rb') as f:
+        encoder = pickle.load(f)
+    with open(model_dir / 'lb.pkl', 'rb') as f:
+        lb = pickle.load(f)
+    with open(model_dir / 'scaler.pkl', 'rb') as f:
+        scaler = pickle.load(f)
+    
+    # Get the data slices for 'education'
+    get_data_slices('education', encoder, lb, scaler)
+    

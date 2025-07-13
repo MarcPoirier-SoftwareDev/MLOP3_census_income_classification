@@ -30,7 +30,7 @@ def test_api_get_root(client):
     r = client.get("/")
     assert r.status_code == 200
     output = r.json()
-    expected_output = {'greeting': 'Welcome! This API predicts income category using Census data.'}
+    expected_output = {'Greetings': 'Welcome to This API predicting income category using Census data.'}
     assert output == expected_output
 
 
