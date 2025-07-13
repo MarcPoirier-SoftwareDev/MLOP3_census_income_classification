@@ -197,7 +197,7 @@ class Mlp(nn.Module):
         Load the model state and preprocessing tools.
         """
         model_path = get_path_file('model/mlp.pt')
-        self.load_state_dict(torch.load(model_path, map_location=self.device))
+        self.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
         for attr, filename in [('encoder', 'encoder.pkl'), ('lb', 'lb.pkl'), ('scaler', 'scaler.pkl')]:
             path = get_path_file(f'model/{filename}')
             setattr(self, attr, load(open(path, 'rb')))
