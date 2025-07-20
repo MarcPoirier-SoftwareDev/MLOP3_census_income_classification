@@ -34,10 +34,11 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run server in background
       run: uvicorn main:app &
-    - name: Test with pytest
-      run: |
-        pytest -vv
+    - name: Run tests and generate coverage report
+      run: pytest --cov=. --cov-report=xml:coverage.xml  # Generates coverage.xml; adjust --cov= to your package if needed (e.g., --cov=src)
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true  # Optional: For more debug logs
+        fail_ci_if_error: true  # Optional: Fail the build if upload fails
