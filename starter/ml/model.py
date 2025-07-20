@@ -62,15 +62,16 @@ class Mlp(nn.Module):
         hyper_tuning: bool = False,
         use_saved_hyper_params: bool = False
     ):
+        # Log initialization for debugging
         logger.info("Initializing MLP")
         super(Mlp, self).__init__()
         
-        # Device setup
+        # Determine device (GPU if available, else CPU)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.epochs = epochs
         self.hyper_tuning = hyper_tuning
         
-        # Load hyperparameters if specified
+        # Load hyperparameters from file if specified
         if use_saved_hyper_params:
             params = get_hyperparameters()['parameters']
             self.batch_size = params['batch_size']
@@ -83,8 +84,9 @@ class Mlp(nn.Module):
             self.dropout_rate = dropout_rate
             self.learning_rate = learning_rate
 
-        # Define network and optimizer
+        # Define loss function (CrossEntropyLoss for classification)
         self.loss_fn = nn.CrossEntropyLoss()  # Expects raw logits
+        # Build the MLP network architecture
         self.network = build_mlp(
             input_size=input_dim,
             output_size=n_classes,
@@ -92,9 +94,10 @@ class Mlp(nn.Module):
             hidden_size=hidden_dim,
             dropout_rate=dropout_rate
         ).to(self.device)
+        # Initialize Adam optimizer
         self.optimizer = torch.optim.Adam(self.network.parameters(), lr=self.learning_rate)
 
-        # Preprocessing tools (initialized as None, populated via load_model or training)
+        # Initialize preprocessing attributes (to be set during training or loading)
         self.encoder = None  # OneHotEncoder
         self.lb = None  # LabelBinarizer
         self.scaler = None  # StandardScaler
@@ -113,6 +116,7 @@ class Mlp(nn.Module):
         torch.Tensor
             Logits [batch_size, n_classes].
         """
+        # Pass input through the network
         return self.network(x)
 
     def train_model(self, x_train: np.ndarray, y_train: np.ndarray) -> float:
@@ -131,22 +135,32 @@ class Mlp(nn.Module):
         float
             Average loss of the last epoch.
         """
+        # Create dataset and dataloader for training
         dataset = CensusDataset(x_train, y_train, self.device)
         train_loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        self.train()  # Set model to training mode
+        # Set model to training mode
+        self.train()  
         last_loss = 0.0
 
+        # Training loop over epochs
         for epoch in range(self.epochs):
             running_loss = 0.0
             for i, (inputs, labels) in enumerate(train_loader):
+                # Zero gradients
                 self.optimizer.zero_grad()
+                # Forward pass
                 outputs = self.network(inputs)
+                # Compute loss
                 loss = self.loss_fn(outputs, labels)
+                # Backpropagation
                 loss.backward()
+                # Update weights
                 self.optimizer.step()
 
+                # Accumulate loss
                 running_loss += loss.item()
                 n_batches = len(train_loader)
+                # Log loss every 20 epochs if not in hyper-tuning mode
                 if (epoch % 20 == 0 and i == n_batches - 1 and not self.hyper_tuning):
                     last_loss = running_loss / n_batches
                     logger.info(f"Epoch {epoch}, Loss: {last_loss:.4f}")
@@ -168,10 +182,14 @@ class Mlp(nn.Module):
         np.ndarray
             Predicted class indices.
         """
-        self.eval()  # Set model to evaluation mode
+        # Set model to evaluation mode
+        self.eval()  
         with torch.no_grad():
+            # Convert input to tensor and move to device
             x_tensor = torch.from_numpy(x).to(self.device).float()
+            # Get logits
             logits = self.network(x_tensor)
+            # Return class with highest logit
             return logits.argmax(dim=1).cpu().numpy().reshape(-1)
 
     def save_model(self, encoder: OneHotEncoder, lb: LabelBinarizer, scaler: StandardScaler) -> None:
@@ -187,8 +205,10 @@ class Mlp(nn.Module):
         scaler : StandardScaler
             Fitted standard scaler.
         """
+        # Save model state dictionary
         model_path = get_path_file('model/mlp.pt')
         torch.save(self.state_dict(), model_path)
+        # Save preprocessing objects
         for obj, filename in [(encoder, 'encoder.pkl'), (lb, 'lb.pkl'), (scaler, 'scaler.pkl')]:
             dump(obj, open(get_path_file(f'model/{filename}'), 'wb'))
 
@@ -196,8 +216,10 @@ class Mlp(nn.Module):
         """
         Load the model state and preprocessing tools.
         """
+        # Load model state dictionary
         model_path = get_path_file('model/mlp.pt')
         self.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
+        # Load preprocessing objects
         for attr, filename in [('encoder', 'encoder.pkl'), ('lb', 'lb.pkl'), ('scaler', 'scaler.pkl')]:
             path = get_path_file(f'model/{filename}')
             setattr(self, attr, load(open(path, 'rb')))
@@ -231,10 +253,14 @@ def build_mlp(
     nn.Module
         The constructed MLP network.
     """
+    # Start with input layer
     layers = [nn.Linear(input_size, hidden_size), nn.ReLU()]
+    # Add hidden layers with dropout and ReLU
     for _ in range(n_layers):
         layers.extend([nn.Linear(hidden_size, hidden_size), nn.Dropout(p=dropout_rate), nn.ReLU()])
+    # Add output layer
     layers.append(nn.Linear(hidden_size, output_size))
+    # Return sequential model
     return nn.Sequential(*layers)
 
 
@@ -252,13 +278,16 @@ class CensusDataset(Dataset):
         Device to store tensors ('cuda' or 'cpu').
     """
     def __init__(self, features: np.ndarray, labels: np.ndarray, device: str):
+        # Convert features and labels to tensors on the specified device
         self.features = torch.from_numpy(features).to(device).float()
         self.labels = torch.from_numpy(labels).to(device).long()  # LongTensor for CrossEntropyLoss
 
     def __len__(self) -> int:
+        # Return number of samples
         return len(self.features)
 
     def __getitem__(self, idx: int) -> tuple:
+        # Return features and label for given index
         return self.features[idx], self.labels[idx]
 
 
@@ -274,25 +303,27 @@ def train_model(x_train: np.array, y_train: np.array, tuning: bool = True, rando
     :return: Trained machine learning model.
     """
 
-    # If we use the saved model, we use the hyperparameters saved in the yaml file
+    # Ensure tuning is False if using saved model
     if use_saved_model:
         assert tuning is False
+    # Determine number of classes
     n_classes = len(set(y_train))
 
-    # split between training and eval
+    # Split training data into train and validation sets
     x_train2, x_val, y_train2, y_val = train_test_split(
         x_train, y_train, test_size=0.2, random_state=42)
 
     if tuning:
-        # Use optuna to estimate the best hyper-parameters
+        # Perform hyperparameter tuning with Optuna
         print('Tuning hyper parameters...')
         params = hyperparameters_tuning(x_train2, y_train2, x_val, y_val, random_state)
     else:
-        # read the hyper-parameters saved
+        # Load hyperparameters from file
         params = get_hyperparameters()['parameters']
     print('Hyper parameters selected for training:')
     print(params)
 
+    # Train the model on full training data
     print('training the model...')
     # Now that we've estimated the optimal value for hyper-parameters, we can train the model
     # on all the training data available.
@@ -316,13 +347,16 @@ def training_session(x_train: np.array, y_train: np.array, n_classes: int, epoch
     'learning_rate' and 'n_layers'.
     :return: Trained model.
     """
+    # Initialize MLP model with given parameters
     model = Mlp(epochs=epochs,
                 input_dim=x_train.shape[1],
                 n_classes=n_classes,
                 hyper_tuning=hyper_tuning,
                 **params)
+    # Load pre-trained model if specified
     if use_saved_model:
         model.load_model()
+    # Train the model
     model.train_model(x_train, y_train)
     return model
 
@@ -339,10 +373,15 @@ def hyperparameters_tuning(x_train: np.array, y_train: np.array, x_val: np.array
     :return:
     Dictionary with selected hyperparameters
     """
+    # Create Optuna study for maximization
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
+    # Get objective function
     objective_used = get_objective(x_train, y_train, x_val, y_val)
+    # Optimize hyperparameters
     study.optimize(objective_used, n_trials=10)
+    # Get best parameters
     best_params = study.best_params
+    # Save best parameters
     save_hyperparameters(best_params, random_state)
     return best_params
 
@@ -358,6 +397,7 @@ def objective(trial: optuna.Trial, x_train: np.array, y_train: np.array, x_val: 
     :param y_val: labels for validation
     :return: f1 score
     """
+    # Suggest hyperparameters for trial
     params = {
         'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-1),
         'batch_size': trial.suggest_categorical('batch_size', [64, 128, 256, 512, 1024]),
@@ -365,8 +405,11 @@ def objective(trial: optuna.Trial, x_train: np.array, y_train: np.array, x_val: 
         'n_layers': trial.suggest_categorical('n_layers', [1, 2, 3, 4, 5]),
         'dropout_rate': trial.suggest_categorical('dropout_rate', [0.3, 0.4, 0.5, 0.6, 0.7])
     }
+    # Train model with suggested parameters
     model = training_session(x_train, y_train, use_saved_model=False, **params, epochs=150, n_classes=2, hyper_tuning=True)
+    # Predict on validation set
     preds = model.predict(x_val)
+    # Compute F1 score
     f1 = fbeta_score(y_val, preds, beta=1, zero_division=1)
     return f1
 
@@ -381,6 +424,7 @@ def get_objective(x_train: np.array, y_train: np.array, x_val: np.array, y_val: 
     :return:
     optimization function
     """
+    # Return lambda wrapping objective with fixed data
     return lambda trial: objective(trial, x_train, y_train, x_val, y_val)
 
 
@@ -391,8 +435,11 @@ def compute_model_metrics(y: np.array, preds: np.array) -> Tuple[float, float, f
     :param preds: Predicted labels, binarized.
     :return: tuple (precision, recall, F1)
     """
+    # Compute F-beta score (beta=1 is F1)
     fbeta = fbeta_score(y, preds, beta=1, zero_division=1)
+    # Compute precision
     precision = precision_score(y, preds, zero_division=1)
+    # Compute recall
     recall = recall_score(y, preds, zero_division=1)
     return precision, recall, fbeta
 
@@ -405,6 +452,7 @@ def inference(model: Mlp, x: np.array) -> np.array:
     :return: Predictions from the model
     """
 
+    # Use model's predict method
     y_pred = model.predict(x)
     return y_pred
 
@@ -415,7 +463,10 @@ def get_trained_mlp() -> Mlp:
     :return: Mlp model
 
     """
+    # Log start for debugging
     logger.info('Starting get_trained_mlp')
+    # Initialize model with saved hyperparameters
     model = Mlp(use_saved_hyper_params=True)
+    # Load model state and preprocessors
     model.load_model()
     return model
