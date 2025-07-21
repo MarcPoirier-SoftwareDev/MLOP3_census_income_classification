@@ -11,3 +11,4 @@ gunicorn
 optuna
 torch
 pydantic==1.10.22
+dvc[s3]>=3.0
