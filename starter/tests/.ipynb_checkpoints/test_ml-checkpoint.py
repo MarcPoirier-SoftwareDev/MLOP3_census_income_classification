@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 from torch import nn
-from ..ml.nn_model import build_mlp
-from ..ml.nn_model import Mlp
+from ..ml.model import build_mlp
+from ..ml.model import Mlp
 
 
 @pytest.mark.parametrize('n_layers', [1, 2])
