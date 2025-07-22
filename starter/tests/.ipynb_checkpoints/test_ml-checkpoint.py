@@ -39,7 +39,6 @@ def test_build_mlp_extended(n_layers, hidden_size, dropout_rate):
     # Edge: n_layers=0 (should have input + output)
     if n_layers == 0:  # But function assumes >0; test separately if needed
 
-
 def test_mlp_inference():
     """
     Test if the model returns expected output when used for inference
