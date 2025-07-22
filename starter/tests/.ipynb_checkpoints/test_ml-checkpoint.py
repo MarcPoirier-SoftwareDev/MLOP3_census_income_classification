@@ -38,20 +38,7 @@ def test_build_mlp_extended(n_layers, hidden_size, dropout_rate):
         assert model[i].p == dropout_rate
     # Edge: n_layers=0 (should have input + output)
     if n_layers == 0:  # But function assumes >0; test separately if needed
-
-"""
-def test_mlp_inference():
-    
-    #Test if the model returns expected output when used for inference
-    
-    model = Mlp(n_layers=2, hidden_dim=5, n_classes=2, input_dim=10)
-    n_examples = 300
-    data = np.random.rand(n_examples, 10)
-    output = model.predict(data)
-    assert output.shape[0] == n_examples
-"""
-
-# New: Test Mlp init and device
+#New: Test Mlp init and device
 def test_mlp_init(monkeypatch):
     monkeypatch.setattr(torch.cuda, 'is_available', lambda: False)  # Force CPU
     model = Mlp(n_layers=1, hidden_dim=5, n_classes=2, input_dim=10, dropout_rate=0.3)
