@@ -34,6 +34,21 @@ jobs:
         aws-region: eu-west-3
     - name: Downloads DVC artifacts
       run: dvc pull --verbose
+    - name: Check pulled artifacts
+      run: |
+        ls -lh data/ model/  # List file sizes
+        if [ -f data/census_clean.csv ]; then
+          head -n 5 data/census_clean.csv  # Show first few lines
+          wc -l data/census_clean.csv  # Count lines (should be ~32k+ for full dataset)
+        else
+          echo "census_clean.csv missing!"
+        fi
+        if [ -f data/census.csv ]; then
+          head -n 5 data/census.csv
+          wc -l data/census.csv
+        else
+          echo "census.csv missing!"
+        fi 
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
