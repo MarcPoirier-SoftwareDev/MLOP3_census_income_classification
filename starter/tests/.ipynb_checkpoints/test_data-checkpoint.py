@@ -13,9 +13,9 @@ def test_get_raw_data(raw_data):
     assert not raw_data.empty, "Raw data is empty"
     assert len(raw_data.columns) == 15, "Unexpected number of columns"
     expected_columns = [
-        'age', 'workclass', 'fnlgt', 'education', 'education-num',
-        'marital-status', 'occupation', 'relationship', 'race', 'sex',
-        'capital-gain', 'capital-loss', 'hours-per-week', 'native-country', 'salary'
+        'age', ' workclass', ' fnlgt', ' education', ' education-num',
+        ' marital-status', ' occupation', ' relationship', ' race', ' sex',
+        ' capital-gain', ' capital-loss', ' hours-per-week', ' native-country', ' salary'
     ]
     assert list(raw_data.columns) == expected_columns, "Raw data columns do not match expected"
 
@@ -23,7 +23,7 @@ def test_get_raw_data(raw_data):
 def test_raw_data_integrity(raw_data):
     """Ensure raw data meets basic expectations."""
     assert len(raw_data) >= 30000, "Raw data too small"
-    assert set(raw_data['salary'].unique()) == {' >50K', ' <=50K'}, "Unexpected salary values in raw data"
+    assert set(raw_data[' salary'].unique()) == {' >50K', ' <=50K'}, "Unexpected salary values in raw data"  # Access with space
     assert raw_data.isnull().sum().sum() == 0, "Null values in raw data"
 
 
@@ -54,14 +54,8 @@ def test_get_cat_features():
     assert cat_features == exp_cat_features
 
 
-
 def test_clean_data_integrity(clean_data):
     """Verify clean data (census_clean.csv) has expected size, salary values, and no nulls."""
     assert len(clean_data) >= 30000, "Clean data too small"
     assert set(clean_data['salary'].unique()) == {'>50K', '<=50K'}, "Unexpected salary values"
     assert clean_data.isnull().sum().sum() == 0, "Null values in clean data"
-
-
-
-
-    
