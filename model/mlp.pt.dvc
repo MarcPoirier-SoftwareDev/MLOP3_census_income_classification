@@ -1,5 +1,5 @@
 outs:
-- md5: 7896ee834ce1daa3149a2830a18ba7cc
-  size: 19669
+- md5: 5e3e0872991f9f7a86c696ed3d7c70d0
+  size: 11753
   hash: md5
   path: mlp.pt
