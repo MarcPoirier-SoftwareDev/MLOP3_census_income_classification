@@ -399,7 +399,7 @@ def objective(trial: optuna.Trial, x_train: np.array, y_train: np.array, x_val: 
     """
     # Suggest hyperparameters for trial
     params = {
-        'learning_rate': trial.suggest_loguniform('learning_rate', 1e-5, 1e-1),
+        'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-1, log=True), # Fix Optuna Deprecation Warning
         'batch_size': trial.suggest_categorical('batch_size', [64, 128, 256, 512, 1024]),
         'hidden_dim': trial.suggest_categorical('hidden_dim', [5, 10, 25, 50]),
         'n_layers': trial.suggest_categorical('n_layers', [1, 2, 3, 4, 5]),
