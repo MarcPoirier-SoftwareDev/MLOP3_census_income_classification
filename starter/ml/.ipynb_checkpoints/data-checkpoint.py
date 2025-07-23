@@ -1,6 +1,5 @@
 """
 Methods related to data manipulation.
-This is a modification of the file provided in the original Udacity repository.
 
 """
 import yaml
@@ -66,32 +65,37 @@ def process_data(
         passed in.
     """
 
+    # Separate the label from the features if a label is provided
     if label is not None:
         y = X[label]
         X = X.drop([label], axis=1)
     else:
         y = np.array([])
 
+    # Extract categorical and continuous features
     X_categorical = X[categorical_features].values
-    X_continuous = X.drop(*[categorical_features], axis=1).values
+    X_continuous = X.drop(categorical_features, axis=1).values
 
+    # Handle training mode: fit and transform preprocessors
     if training is True:
         encoder = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
         lb = LabelBinarizer()
         X_categorical = encoder.fit_transform(X_categorical)
         y = lb.fit_transform(y.values).ravel()
-        # we're using neural networks so we need to scale the data
+        # Scale continuous features for neural network compatibility
         scaler = StandardScaler()
         X_continuous = scaler.fit_transform(X_continuous)
+    # Handle inference mode: transform using provided preprocessors
     else:
         X_categorical = encoder.transform(X_categorical)
         X_continuous = scaler.transform(X_continuous)
         try:
             y = lb.transform(y.values).ravel()
-        # Catch the case where y is None because we're doing inference.
+        # Handle case where y is None (e.g., during pure inference)
         except AttributeError:
             pass
 
+    # Concatenate processed continuous and categorical features
     X = np.concatenate([X_continuous, X_categorical], axis=1)
 
     return X, y, encoder, lb, scaler
@@ -110,22 +114,23 @@ def get_path_root() -> Path:
     Raises:
         Exception: If the project root cannot be found.
     """
-    # Check for environment variable (e.g., set in Render)
+    # Check for PROJECT_ROOT environment variable (useful in deployed environments)
     if 'PROJECT_ROOT' in os.environ:
         root = Path(os.environ['PROJECT_ROOT'])
         logger.info(f"Using PROJECT_ROOT from environment: {root}")
         return root
     
-    # Fallback to searching for a marker file (Procfile) locally
+    # Fallback: Traverse upwards to find a directory containing 'Procfile' (local development)
     current_path = Path.cwd()
-    for _ in range(10):  # Limit traversal to 10 levels
+    for _ in range(10):  # Limit traversal depth to prevent infinite loops
         if (current_path / 'Procfile').exists():
             logger.info(f"Found Procfile at: {current_path}")
             return current_path
-        if current_path.parent == current_path:  # Reached filesystem root
+        if current_path.parent == current_path:  # Reached the filesystem root
             break
         current_path = current_path.parent
     
+    # Raise exception if root cannot be determined
     raise Exception('Cannot find project path')
 
 
@@ -134,7 +139,9 @@ def get_path_file(file_local_path):
     Return the full path of a file given its local path
     :param file_local_path: local path of the file in the project (ex: "data/census.csv")
     """
+    # Get the project root directory
     project_dir = get_path_root()
+    # Construct the full path by joining root with local path
     raw_path = PurePath.joinpath(project_dir, file_local_path)
     return raw_path
 
@@ -145,7 +152,9 @@ def get_raw_data():
     :return:
     pd.DataFrame containing raw data as read from the csv file
     """
+    # Get the full path to the raw data CSV
     raw_path = get_path_file("data/census.csv")
+    # Load and return the raw data as a DataFrame
     raw_data = pd.read_csv(raw_path)
     return raw_data
 
@@ -156,7 +165,9 @@ def get_clean_data():
     :return:
     pd.DataFrame containing pre-processed data as read from the csv file
     """
+    # Get the full path to the cleaned data CSV
     raw_path = get_path_file("data/census_clean.csv")
+    # Load and return the cleaned data as a DataFrame
     raw_data = pd.read_csv(raw_path)
     return raw_data
 
@@ -165,27 +176,36 @@ def save_clean_data():
     """
     Remove white spaces from "census.csv" and save data processed as such to "census_clean.csv".
     """
+    # Get paths for raw and clean CSV files
     raw_path = get_path_file("data/census.csv")
     clean_path = get_path_file("data/census_clean.csv")
+    # Open raw file for reading and clean file for writing
     with open(raw_path, 'r') as f_raw, open(clean_path, 'w') as f_clean:
         reader = csv.reader(f_raw, skipinitialspace=False, delimiter=',', quoting=csv.QUOTE_NONE)
         writer = csv.writer(f_clean)
+        # Strip whitespace from each cell in every row and write to clean file
         for row in reader:
             clean_row = [item.strip() for item in row]
             writer.writerow(clean_row)
 
 
 def save_hyperparameters(params: dict, random_state):
+    # Prepare hyperparameters dictionary with name and random state
     params = {'name': 'MLP hyper parameters', 'parameters': params, 'random_state': random_state}
+    # Get the path to the hyperparameters YAML file
     file_name = get_path_file('parameters/hyperparams.yml')
+    # Remove existing file if it exists
     if file_name.is_file():
         os.remove(file_name)  # if the file already exists, delete it
+    # Save the hyperparameters to YAML
     with open(file_name, 'w') as outfile:
         yaml.dump(params, outfile, default_flow_style=False)
 
 
 def get_hyperparameters():
+    # Get the path to the hyperparameters YAML file
     file_name = get_path_file('parameters/hyperparams.yml')
+    # Load and return the hyperparameters from YAML
     with open(file_name, "r") as stream:
         params = yaml.safe_load(stream)
 
@@ -198,10 +218,12 @@ def get_cat_features(for_api=False) -> list:
     :param for_api:
     :return:
     """
+    # Get the path to the categorical features YAML file
     file_name = get_path_file('parameters/cat_features.yml')
+    # Load the categorical features from YAML
     with open(file_name, "r") as stream:
         features = yaml.safe_load(stream)['features']
-    # if used by api hyphens are replaced by underscore
+    # Adjust feature names for API usage by replacing hyphens with underscores
     if for_api:
         for i, item in enumerate(features):
             features[i] = item.replace('-', '_')
@@ -209,12 +231,17 @@ def get_cat_features(for_api=False) -> list:
 
 
 def get_processed_test_data(encoder, lb, scaler, data=None):
+    # Use clean data if no data is provided
     if data is None:
         data = get_clean_data()
 
+    # Retrieve random state from hyperparameters
     random_state = get_hyperparameters()['random_state']
+    # Split data into train/test sets
     _, test = train_test_split(data, test_size=0.20, random_state=random_state)
+    # Get categorical features
     cat_features = get_cat_features()
+    # Process the test data using provided preprocessors
     x_test, y_test, _, _, _ = process_data(test, categorical_features=cat_features, label="salary",
                                            training=False, encoder=encoder, lb=lb, scaler=scaler)
     return x_test, y_test
@@ -234,12 +261,18 @@ def get_data_slices(selected_feature: str, encoder: OneHotEncoder, lb: LabelBina
     value in the key of the dictionary.
     """
 
+    # Load clean data
     data = get_clean_data()
+    # Retrieve random state from hyperparameters
     random_state = get_hyperparameters()['random_state']
+    # Split data into train/test sets
     _, test = train_test_split(data, test_size=0.20, random_state=random_state)
+    # Group test data by the selected categorical feature
     grouped = test.groupby(selected_feature)
+    # Get categorical features
     cat_features = get_cat_features()
     output = {}
+    # Process each group (slice) separately
     for value, sliced in grouped:
         x_sliced, y_sliced, _, _, _ = process_data(sliced, categorical_features=cat_features, label="salary",
                                                    training=False, encoder=encoder, lb=lb, scaler=scaler)

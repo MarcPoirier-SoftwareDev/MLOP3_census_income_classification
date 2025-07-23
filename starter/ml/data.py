@@ -1,6 +1,5 @@
 """
 Methods related to data manipulation.
-This is a modification of the file provided in the original Udacity repository.
 
 """
 import yaml
