@@ -64,7 +64,7 @@ def test_api_post_positive(positive_example, client):
     data = pd.DataFrame([example])
     cat_features = get_cat_features()
     model = get_trained_mlp()
-    x, _, _, _, _ = process_data(data, categorical_features=cat_features, label="salary",
+    x, _, _, _, _ = process_data(data, categorical_features=cat_features, label=None,
                                  training=False, encoder=model.encoder, lb=model.lb, scaler=model.scaler)
     predicted = inference(model, x)
     expected_output = predicted[0]
@@ -84,7 +84,7 @@ def test_api_post_negative(predict_request, negative_example, client):
     data = pd.DataFrame([example])
     cat_features = get_cat_features()
     model = get_trained_mlp()
-    x, _, _, _, _ = process_data(data, categorical_features=cat_features, label="salary",
+    x, _, _, _, _ = process_data(data, categorical_features=cat_features, label=None,
                                  training=False, encoder=model.encoder, lb=model.lb, scaler=model.scaler)
     predicted = inference(model, x)
     expected_output = predicted[0]
