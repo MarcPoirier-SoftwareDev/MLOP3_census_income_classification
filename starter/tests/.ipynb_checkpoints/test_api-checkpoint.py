@@ -1,5 +1,5 @@
 import pytest
-import json
+import json  # Can remove if not used elsewhere
 import pandas as pd
 from fastapi.testclient import TestClient
 from main import CensusItem, app
@@ -34,59 +34,42 @@ def test_api_get_root(client):
     assert output == expected_output
 
 
-@pytest.fixture(scope='class')
-def predict_request(client, positive_example, negative_example):
-    requests = {}
-    requests['positive'] = client.post("/predict", json=positive_example)
-    requests['negative'] = client.post("/predict", json=negative_example)
-    return requests
+# Remove predict_request fixture – inline POSTs in tests for simplicity
 
 
-# Tests for API post predict
-
-
-def test_api_post_basic(predict_request):
-    response = predict_request['negative']
+# Combined parametrized test for inferences (replaces test_api_post_positive, test_api_post_negative, and absorbs test_api_post_basic)
+@pytest.mark.parametrize("example_fixture, type_ex, expected_class", [
+    ("positive_example", "positive", 1),  # 1 for >50K
+    ("negative_example", "negative", 0),  # 0 for <=50K
+])
+def test_api_post_inference(example_fixture, type_ex, expected_class, client, request):
+    """
+    Test that the prediction from the API matches direct model inference for each possible outcome.
+    Also checks status code and output type.
+    """
+    example = request.getfixturevalue(example_fixture)
+    response = client.post("/predict", json=example)  # Standardize to json= for all
     assert response.status_code == 200
     output = response.json()['predicted_salary_class']
-    assert type(output) == int
-
-
-def test_api_post_positive(positive_example, client):
-    """
-    Test that the prediction we get from using the api is identical to the one we get from inferring
-    directly from the model. We consider both an example where the model predicts a positive outcome and a case
-    where the model predicts a negative outcome.
-    """
-    type_ex, example = 'positive', positive_example
-    response = client.post("/predict", json=positive_example)
-    output = response.json()['predicted_salary_class']
+    assert isinstance(output, int), "Output should be an integer"
+    # Direct inference check
     data = pd.DataFrame([example])
     cat_features = get_cat_features()
     model = get_trained_mlp()
     x, _, _, _, _ = process_data(data, categorical_features=cat_features, label=None,
                                  training=False, encoder=model.encoder, lb=model.lb, scaler=model.scaler)
-    predicted = inference(model, x)
-    expected_output = predicted[0]
-    assert response.status_code == 200
-    assert output == expected_output, f"API prediction failed for an example labelled as {type_ex} by the model"
+    predicted = inference(model, x)[0]
+    assert output == predicted, f"API prediction ({output}) != direct inference ({predicted}) for {type_ex} example"
+    assert predicted == expected_class, f"Unexpected class {predicted} (expected {expected_class}) for {type_ex} example"
 
 
-def test_api_post_negative(predict_request, negative_example, client):
+# Cool addition: Simple test for invalid input (error handling)
+def test_api_post_invalid(client, positive_example):
     """
-    Test that the prediction we get from using the api is identical to the one we get from inferring
-    directly from the model. We consider both an example where the model predicts a positive outcome and a case
-    where the model predicts a negative outcome.
+    Test API handles invalid input (e.g., missing field) with proper error.
     """
-    type_ex, example = 'negative', negative_example
-    response = client.post("/predict", data=json.dumps(negative_example))
-    output = response.json()['predicted_salary_class']
-    data = pd.DataFrame([example])
-    cat_features = get_cat_features()
-    model = get_trained_mlp()
-    x, _, _, _, _ = process_data(data, categorical_features=cat_features, label=None,
-                                 training=False, encoder=model.encoder, lb=model.lb, scaler=model.scaler)
-    predicted = inference(model, x)
-    expected_output = predicted[0]
-    assert response.status_code == 200
-    assert output == expected_output, f"API prediction failed for an example labelled as {type_ex} by the model"
+    invalid_example = positive_example.copy()
+    del invalid_example['age']  # Remove a required field
+    response = client.post("/predict", json=invalid_example)
+    assert response.status_code == 422  # Unprocessable Entity (Pydantic validation)
+    assert "field required" in response.json()['detail'][0]['msg'].lower()  # Check error message content
