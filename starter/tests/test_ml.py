@@ -33,3 +33,4 @@ def test_mlp_inference():
     data = np.random.rand(n_examples, 10)
     output = model.predict(data)
     assert output.shape[0] == n_examples
+    assert np.all((output >= 0) & (output < 2))  # Classes 0 or 1
