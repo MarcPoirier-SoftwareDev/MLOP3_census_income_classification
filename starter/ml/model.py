@@ -378,7 +378,7 @@ def hyperparameters_tuning(x_train: np.array, y_train: np.array, x_val: np.array
     # Get objective function
     objective_used = get_objective(x_train, y_train, x_val, y_val)
     # Optimize hyperparameters
-    study.optimize(objective_used, n_trials=10)
+    study.optimize(objective_used, n_trials=20)
     # Get best parameters
     best_params = study.best_params
     # Save best parameters
