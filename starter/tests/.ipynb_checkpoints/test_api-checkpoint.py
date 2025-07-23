@@ -1,5 +1,5 @@
 import pytest
-import json  # Can remove if not used elsewhere
+import json 
 import pandas as pd
 from fastapi.testclient import TestClient
 from main import CensusItem, app
