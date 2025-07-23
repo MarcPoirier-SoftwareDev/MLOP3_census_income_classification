@@ -34,10 +34,7 @@ def test_api_get_root(client):
     assert output == expected_output
 
 
-# Remove predict_request fixture – inline POSTs in tests for simplicity
-
-
-# Combined parametrized test for inferences (replaces test_api_post_positive, test_api_post_negative, and absorbs test_api_post_basic)
+# Combined parametrized test for inferences
 @pytest.mark.parametrize("example_fixture, type_ex, expected_class", [
     ("positive_example", "positive", 1),  # 1 for >50K
     ("negative_example", "negative", 0),  # 0 for <=50K
@@ -63,7 +60,7 @@ def test_api_post_inference(example_fixture, type_ex, expected_class, client, re
     assert predicted == expected_class, f"Unexpected class {predicted} (expected {expected_class}) for {type_ex} example"
 
 
-# Cool addition: Simple test for invalid input (error handling)
+# Simple test for invalid input (error handling)
 def test_api_post_invalid(client, positive_example):
     """
     Test API handles invalid input (e.g., missing field) with proper error.

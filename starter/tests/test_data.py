@@ -37,6 +37,13 @@ def test_get_cat_features():
     cat_features = get_cat_features()
     assert cat_features == exp_cat_features
 
+def test_clean_data_integrity(clean_data):
+    """Ensure clean data meets basic expectations."""
+    assert len(clean_data) >= 30000, "Clean data too small"
+    assert set(clean_data['salary'].unique()) == {'>50K', '<=50K'}, "Unexpected salary values"
+    assert clean_data.isnull().sum().sum() == 0, "Null values in clean data"
+
+
 
 if __name__ == '__main__':
     test_get_path_root()
