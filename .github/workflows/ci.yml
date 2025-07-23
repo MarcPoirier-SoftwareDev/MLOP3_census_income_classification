@@ -48,7 +48,21 @@ jobs:
           wc -l data/census.csv
         else
           echo "census.csv missing!"
-        fi 
+        fi
+    - name: Debug Census Data
+      run: |
+        python -c "
+        import pandas as pd
+        df = pd.read_csv('data/census_clean.csv')
+        print('Column names:', list(df.columns))
+        print('Unique salary values:', df['salary'].unique())
+        print('Salary value counts:\\n', df['salary'].value_counts())
+        print('First salary value (raw):', repr(df['salary'].iloc[0]))  # Shows exact string with spaces
+        print('Rows matching \\' >50K\\':', len(df[df['salary'] == ' >50K']))
+        print('Rows matching \\'>50K\\':', len(df[df['salary'] == '>50K']))
+        print('Rows matching \\' <=50K\\':', len(df[df['salary'] == ' <=50K']))
+        print('Rows matching \\'<=50K\\':', len(df[df['salary'] == '<=50K']))
+        "
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
