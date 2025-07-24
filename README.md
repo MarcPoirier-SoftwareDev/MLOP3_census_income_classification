@@ -6,7 +6,7 @@ Classification model on Census Bureau data.
 ## Project description
 
 The purpose of this project is to deploy a scalable pipeline as would be done in a production environment. For that 
-purpose we build an API using FastAPI and deploy it using Heroku. The API run machine learning inference, a prediction 
+purpose we build an API using FastAPI and deploy it using Render. The API run machine learning inference, a prediction 
 on the Census Income Data Set. Data and models are saved on AWS s3 and we use DVC to track them.
 
 We use a multilayer perceptron (MLP) with Dropout for the task. The model is implemented using pytorch. We use the 
@@ -84,7 +84,7 @@ This implement:
 - Unit tests to test the API
 - Once deployed on Render, we can get the API docs at the following url: [https://mlop3-census-income-classification-3.onrender.com/docs](https://mlop3-census-income-classification-3.onrender.com/docs).
 An example of the data structure needed for the POST request can be found in the API docs:
-![](screenshots/example.png)
+<img src="./screenshots/example.PNG">
 
 ## CI/CD
 ### CI
@@ -101,8 +101,7 @@ we need to add it in the action steps defined in the action YAML file:
  - name: Download DVC artifacts
    run: dvc pull
 ```
-![](screenshots/continuous_integration.png)
-
+<img src="./screenshots/continuous_integration.PNG">
 
 ### CD with Render
  We use Render to run our python application that consists in an API for machine learning inference.
@@ -123,7 +122,7 @@ we need to add it in the action steps defined in the action YAML file:
   of the directory
   
 - Finally we set Auto-Deploy **On Commit** to assure Continuous deployment
-![](screenshots/continuous_deployment.png)
+<img src="./screenshots/continuous_deployment.PNG">
 
   
 ## Using the API
@@ -131,8 +130,9 @@ we need to add it in the action steps defined in the action YAML file:
 - The API can be used for prediction using the ```requests``` module. An example of how to use the API for inference can 
 be found in **api_request.py**
 
-![](screenshots/live_GET.png)
+Screenshot showing thee browser receiving the content of the GET implementes on the root domain
+<img src="./screenshots/live_GET.PNG">
 
-![](screenshots/Live_POST.png)
-
+Screenshot showing the results of a script that POSTS to the API using the requests module and returns both the result of model inference and the status code
+<img src="./screenshots/Live_POST.PNG">
 
