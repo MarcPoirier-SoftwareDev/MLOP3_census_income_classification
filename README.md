@@ -1,25 +1,25 @@
 
 
-# Census Income Classification
-Classification model on Census Bureau data.
+# Census Income Prediction API
+A machine learning API for income classification using Census Bureau data, deployed with a production-ready pipeline.
 
-## Project description
+## Project Overview
 
-The purpose of this project is to deploy a scalable pipeline as would be done in a production environment. For that 
-purpose we build an API using FastAPI and deploy it using Render. The API run machine learning inference, a prediction 
-on the Census Income Data Set. Data and models are saved on AWS s3 and we use DVC to track them.
+This project demonstrates a scalable, production-like pipeline for deploying a machine learning API. Built with **FastAPI** and deployed on **Render**, the API performs income prediction on the [Census Income Dataset](https://archive.ics.uci.edu/ml/datasets/census+income) using a **Multilayer Perceptron (MLP)** with Dropout, implemented in **PyTorch** (CPU-only to optimize slug size). Data and models are stored in **AWS S3** and tracked using **DVC** for version control.
 
-We use a multilayer perceptron (MLP) with Dropout for the task. The model is implemented using pytorch. We use the 
-pytorch version restricted to CPU in order to reduce the size of our slug (app and its dependencies).
-In the process of building this model and API we:
-- check performance on slices
-- write a model card
-- track the models and data using DVC
-- track the tests coverage using codecov
-- use GitHub Actions and Render for CI/CD
 
-The data used for training the models and performing the analysis must be saved in 
-**data/census.csv**. The data currently used come from the [Census Bureau](https://archive.ics.uci.edu/ml/datasets/census+income).
+### Key Features
+- **Model**: MLP with Dropout for robust income classification.
+- **Data**: Sourced from the Census Bureau, stored in `data/census.csv`.
+- **Pipeline**:
+  - Evaluates model performance on data slices.
+  - Includes a detailed model card.
+  - Tracks data and models with DVC.
+  - Monitors test coverage using **Codecov**.
+  - Automates CI/CD with **GitHub Actions** and **Render** for continuous deployment.
+
+This project showcases best practices for building, testing, and deploying a machine learning API in a production environment.
+
 
 ### Processing the data for training
 - Raw data from the Census Bureau are in **data/census.csv**
@@ -136,5 +136,5 @@ Screenshot showing thee browser receiving the content of the GET implementes on 
 
 Screenshot showing the results of a script that POSTS to the API using the requests module and returns both the result of model inference and the status code.
 
-<img src="./screenshots/Live_POST.PNG">
+<img src="./screenshots/live_POST.PNG">
 
