@@ -48,7 +48,7 @@ The model trained use the following hyper-parameters(which can be found in **par
   - recall 0.6416
   - F1: 0.6911
 - We also measure performance on slices of the data using the categorical feature 'education':
-<img src="screenshots/slice_output.png" width="275" height="275">
+<img src="./screenshots/slice_output.png" width="275" height="275">
 
 
 ## Code organisation
