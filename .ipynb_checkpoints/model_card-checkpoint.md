@@ -76,7 +76,7 @@ Preprocessing: Same as training, but using fitted encoders/scalers (transform on
 
 The model was evaluated using precision, recall and F1 score.
 
-The values obtained on test data are: precision: 0.78, recall: 0.49, F1: 0.60.
+Overall test metrics: Precision=0.7489, Recall=0.6416, F1=0.6911
 
 
 ## Ethical Considerations
@@ -111,6 +111,6 @@ The values obtained on test data are: precision: 0.78, recall: 0.49, F1: 0.60.
     - Deployment: Use in low-stakes settings; add human oversight for decisions.
     - Monitoring: Track slice metrics in production; set thresholds (e.g., demographic parity <0.1).
     - Extensions: Add cross-validation instead of single split; experiment with more layers or ensembles.
-    - Testing: Run train_model.py with --slice_feature=education to generate slice_output.txt for your run.
+
 
 

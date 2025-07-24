@@ -5,14 +5,18 @@ from ..ml.model import get_trained_mlp, inference
 
 @pytest.fixture(scope='module')
 def raw_data():
-    """Load raw census data from data/census.csv as a pandas DataFrame."""
+    """
+    Load raw census data from data/census.csv as a pandas DataFrame.
+    """
     df = get_raw_data()
     return df
 
 
 @pytest.fixture(scope='module')
 def clean_data():
-    """Load cleaned census data from data/census_clean.csv as a pandas DataFrame."""
+    """
+    Load cleaned census data from data/census_clean.csv as a pandas DataFrame.
+    """
     df = get_clean_data()
     return df
 

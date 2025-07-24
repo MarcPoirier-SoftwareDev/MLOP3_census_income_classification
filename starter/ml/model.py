@@ -1,9 +1,3 @@
-"""
-Merged implementation of MLP model, training, and evaluation functions.
-This combines the contents of model.py and nn_model.py while preserving functionality.
-Refactored slightly for consolidation: unified imports, logging, and removed redundant relative imports.
-"""
-
 import numpy as np
 import torch
 import torch.nn as nn
@@ -17,7 +11,7 @@ from .data import save_hyperparameters, get_hyperparameters, get_path_file
 from typing import Callable, Tuple
 import logging
 
-# Consolidated logging setup
+
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
