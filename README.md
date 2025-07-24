@@ -10,9 +10,7 @@ purpose we build an API using FastAPI and deploy it using Render. The API run ma
 on the Census Income Data Set. Data and models are saved on AWS s3 and we use DVC to track them.
 
 We use a multilayer perceptron (MLP) with Dropout for the task. The model is implemented using pytorch. We use the 
-pytorch version restricted to CPU in order to reduce the size of our slug (app and its dependencies). The limit of the 
-slug on Heroku is of 500MB.
-
+pytorch version restricted to CPU in order to reduce the size of our slug (app and its dependencies).
 In the process of building this model and API we:
 - check performance on slices
 - write a model card
@@ -84,6 +82,7 @@ This implement:
 - Unit tests to test the API
 - Once deployed on Render, we can get the API docs at the following url: [https://mlop3-census-income-classification-3.onrender.com/docs](https://mlop3-census-income-classification-3.onrender.com/docs).
 An example of the data structure needed for the POST request can be found in the API docs:
+Screenshot showing an example
 <img src="./screenshots/example.PNG">
 
 ## CI/CD
@@ -131,8 +130,11 @@ we need to add it in the action steps defined in the action YAML file:
 be found in **api_request.py**
 
 Screenshot showing thee browser receiving the content of the GET implementes on the root domain
+
 <img src="./screenshots/live_GET.PNG">
 
-Screenshot showing the results of a script that POSTS to the API using the requests module and returns both the result of model inference and the status code
+
+Screenshot showing the results of a script that POSTS to the API using the requests module and returns both the result of model inference and the status code.
+
 <img src="./screenshots/Live_POST.PNG">
 
