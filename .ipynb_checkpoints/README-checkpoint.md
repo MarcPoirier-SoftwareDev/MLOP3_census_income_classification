@@ -1,47 +1,138 @@
-<<<<<<< HEAD
-Working in a command line environment is recommended for ease of use with git and dvc. If on Windows, WSL1 or 2 is recommended.
 
-# Environment Set up
-* Download and install conda if you don’t have it already.
-    * Use the supplied requirements file to create a new environment, or
-    * conda create -n [envname] "python=3.8" scikit-learn pandas numpy pytest jupyter jupyterlab fastapi uvicorn -c conda-forge
-    * Install git either through conda (“conda install git”) or through your CLI, e.g. sudo apt-get git.
 
-## Repositories
-* Create a directory for the project and initialize git.
-    * As you work on the code, continually commit changes. Trained models you want to use in production must be committed to GitHub.
-* Connect your local git repo to GitHub.
-* Setup GitHub Actions on your repo. You can use one of the pre-made GitHub Actions if at a minimum it runs pytest and flake8 on push and requires both to pass without error.
-    * Make sure you set up the GitHub Action to have the same version of Python as you used in development.
+# Census Income Classification
+Classification model on Census Bureau data.
 
-# Data
-* Download census.csv and commit it to dvc.
-* This data is messy, try to open it in pandas and see what you get.
-* To clean it, use your favorite text editor to remove all spaces.
+## Project description
 
-# Model
-* Using the starter code, write a machine learning model that trains on the clean data and saves the model. Complete any function that has been started.
-* Write unit tests for at least 3 functions in the model code.
-* Write a function that outputs the performance of the model on slices of the data.
-    * Suggestion: for simplicity, the function can just output the performance on slices of just the categorical features.
-* Write a model card using the provided template.
+The purpose of this project is to deploy a scalable pipeline as would be done in a production environment. For that 
+purpose we build an API using FastAPI and deploy it using Heroku. The API run machine learning inference, a prediction 
+on the Census Income Data Set. Data and models are saved on AWS s3 and we use DVC to track them.
 
-# API Creation
-*  Create a RESTful API using FastAPI this must implement:
-    * GET on the root giving a welcome message.
-    * POST that does model inference.
-    * Type hinting must be used.
-    * Use a Pydantic model to ingest the body from POST. This model should contain an example.
-   	 * Hint: the data has names with hyphens and Python does not allow those as variable names. Do not modify the column names in the csv and instead use the functionality of FastAPI/Pydantic/etc to deal with this.
-* Write 3 unit tests to test the API (one for the GET and two for POST, one that tests each prediction).
+We use a multilayer perceptron (MLP) with Dropout for the task. The model is implemented using pytorch. We use the 
+pytorch version restricted to CPU in order to reduce the size of our slug (app and its dependencies). The limit of the 
+slug on Heroku is of 500MB.
 
-# API Deployment
-* Create a free Heroku account (for the next steps you can either use the web GUI or download the Heroku CLI).
-* Create a new app and have it deployed from your GitHub repository.
-    * Enable automatic deployments that only deploy if your continuous integration passes.
-    * Hint: think about how paths will differ in your local environment vs. on Heroku.
-    * Hint: development in Python is fast! But how fast you can iterate slows down if you rely on your CI/CD to fail before fixing an issue. I like to run flake8 locally before I commit changes.
-* Write a script that uses the requests module to do one POST on your live API.
-=======
-# MLOP3_census_income_classification
->>>>>>> origin/main
+In the process of building this model and API we:
+- check performance on slices
+- write a model card
+- track the models and data using DVC
+- track the tests coverage using codecov
+- use GitHub Actions and Render for CI/CD
+
+The data used for training the models and performing the analysis must be saved in 
+**data/census.csv**. The data currently used come from the [Census Bureau](https://archive.ics.uci.edu/ml/datasets/census+income).
+
+### Processing the data for training
+- Raw data from the Census Bureau are in **data/census.csv**
+- Raw data are pre-processed in the notebook **Cleaning.ipynb** by removing white spaces and saved as **census_clean.csv**
+- The raw data are split between training and testing (80%/20%)
+- The data pre-processing tools are trained using only training data. The pipeline for pre-processing the data used by 
+the model is as follows:
+  - One hot encoding for categorical variables
+  - StandardScaler for continuous variables
+  - labelBinarizer for labels (target)
+### Training the model
+- The code related to training is found in **starter/ml/model.py**
+- Hyper-parameter tuning is done using Optuna. We split training data between train and dev for that purpose (80%/20%)
+The model trained use the following hyper-parameters(which can be found in **parameters/hyperparams.yml**):
+  - number layers: 1
+  - batch size: 64
+  - dropout rate: 0.5
+  - hidden dimension: 50
+  - learning rate: 1.06031326045918e-05
+
+### Test results
+- The overall classification performance of the trained model on test data is:
+  - precision: 0.7489
+  - recall 0.6416
+  - F1: 0.6911
+- We also measure performance on slices of the data using the categorical feature 'education':
+![](screenshots/slic_output.png)
+
+
+## Code organisation
+- data used for training are found in **/data**
+- Serialised trained model and preprocessing tools used in the inference pipeline are found in **/model** 
+- features and hyper-parameters are in **/parameters**
+- The code for processing the data, training the model and hyper-parameters search is in **/starter**
+- Tests used for CI are in **starter/tests**. These tests include tests on the model, the code in general and the API
+- The code for the API requests is in **main.py**
+- **api_requests.py** is used to test if the API deployed works properly
+
+## Data and Model Versioning
+We use DVC to store and track both our data and models. We use AWS s3 for storage. The steps to follow for AWS and DVC 
+set up are:
+- In the CLI environment we install the [AWS CLI tool](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
+- To use our new S3 bucket from the AWS CLI we will need to create an IAM user with the appropriate permissions.
+The full instructions can be found [here](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html#id_users_create_console).
+- To save file and track it with dvc we follow steps as shown in the example below:
+```bash
+> dvc add model/mlp.pt
+> git add model/mlp.pt.dvc .gitignore
+> git commit -m "Initial commit of tracked mlp.pt"
+> dvc push
+> git push
+```
+
+## API Creation
+
+- We create a RESTful API using FastAPI, using type hinting and a Pydantic model to ingest the body from POST. 
+This implement:
+  - GET on the root giving a welcome message
+  - POST that does model inference
+- Unit tests to test the API
+- Once deployed on Render, we can get the API docs at the following url: [https://mlop3-census-income-classification-3.onrender.com/docs](https://mlop3-census-income-classification-3.onrender.com/docs).
+An example of the data structure needed for the POST request can be found in the API docs:
+![](screenshots/example.png)
+
+## CI/CD
+### CI
+- We set up GitHub Actions on the repository. We use the pre-made GitHub Actions python-package-conda.yml and adapt it 
+to the version of python used: 3.9. This action runs ```pytest``` and ```flake8``` on push and requires both to pass without error
+- We add AWS credentials to the action (secrets need to be made available to the workflow by creating Repository Secret)
+Connect AWS to GitHub actions:
+  - We add our [AWS credentials to the Action](https://github.com/marketplace/actions/configure-aws-credentials-action-for-github-actions).
+  - We make secrets available to our workflow by creating Repository Secrets: 
+  [Creating encrypted secrets for a repository](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository).
+- We set up [DVC in the action](https://github.com/iterative/setup-dvc) and specify a command to ```dvc pull```, 
+we need to add it in the action steps defined in the action YAML file:
+```bash
+ - name: Download DVC artifacts
+   run: dvc pull
+```
+![](screenshots/continuous_integration.png)
+
+
+### CD with Render
+ We use Render to run our python application that consists in an API for machine learning inference.
+ 
+- First we need to give Render the ability to pull in data from DVC upon app start up and set up access to AWS
+ We set environment variable in the settings : AWS_ACCESS_KEY_ID =XX , $AWS_SECRET_ACCESS_KEY=XX , $AWS_REGION=XX
+
+- We then define the Build command:
+```pip install -r requirements.txt && dvc remote modify myremote access_key_id "$AWS_ACCESS_KEY_ID" && dvc remote modify myremote secret_access_key "$AWS_SECRET_ACCESS_KEY" && dvc remote modify myremote region "$AWS_REGION" && aws s3 ls s3://mlop3-census-data/files/md5/ && dvc pull --verbose```
+
+
+- And the Start Command:
+  ```uvicorn main:app --host=0.0.0.0 --port=$PORT```
+  - This instruction allows our API to be launched using ```uvicorn```
+  - We use the IP ```0.0.0.0``` to tell the server to listen on every open network interface 
+
+- To be sure Render deploys with the proper python version we need to add a `runtime.txt` file at the root 
+  of the directory
+  
+- Finally we set Auto-Deploy **On Commit** to assure Continuous deployment
+![](screenshots/continuous_deployment.png)
+
+  
+## Using the API
+- The get method of the app con be accessed at the following url: [https://mlop3-census-income-classification-3.onrender.com/](https://mlop3-census-income-classification-3.onrender.com/)
+- The API can be used for prediction using the ```requests``` module. An example of how to use the API for inference can 
+be found in **api_request.py**
+
+![](screenshots/live_GET.png)
+
+![](screenshots/Live_POST.png)
+
+
